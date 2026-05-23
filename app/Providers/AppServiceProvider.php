@@ -8,6 +8,7 @@ use App\Listeners\UpdateUserTier;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,6 +21,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Force HTTPS for all asset links behind Zoraxy
+        URL::forceScheme('https');
+
         Paginator::useBootstrapFour();
 
         Event::listen(
