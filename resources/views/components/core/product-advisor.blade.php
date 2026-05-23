@@ -1,56 +1,58 @@
-{{--
-    Product Advisor widget - suggests a product based on simple rules.
-    Appears as a floating button that expands into a suggestion panel.
-    No AI involved - uses category rules and stock availability.
---}}
-@php
-    // pick a featured or in-stock product to recommend
-    $suggestion = \App\Models\Product::withPrices()
-        ->where('status', 'active')
-        ->inRandomOrder()
-        ->first();
-@endphp
-
-@if($suggestion)
-<div id="product-advisor" style="position:fixed; bottom:20px; right:20px; z-index:1050;">
-
-    {{-- collapsed trigger button --}}
-    <button id="advisor-toggle" onclick="toggleAdvisor()"
-            class="btn btn-primary rounded-circle shadow"
-            style="width:56px;height:56px;font-size:1.3rem;"
-            title="Product Advisor">
-        <i class="fas fa-lightbulb"></i>
-    </button>
-
-    {{-- expanded panel --}}
-    <div id="advisor-panel" class="border border-secondary rounded bg-white shadow p-3 mb-2"
-         style="display:none; width:260px; position:absolute; bottom:65px; right:0;">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="text-primary mb-0"><i class="fas fa-lightbulb me-1"></i> Product Advisor</h6>
-            <button onclick="toggleAdvisor()" class="btn btn-sm btn-link p-0 text-muted">&times;</button>
+<div id="smart-advisor-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1050; font-family: sans-serif;">
+    <div id="advisor-bubble" style="display: none; width: 250px; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); margin-bottom: 15px; overflow: hidden; transform: translateY(20px); transition: all 0.3s ease;">
+        <div style="background: #ffb524; color: white; padding: 10px 15px; font-weight: bold; font-size: 14px;">
+            💡 TT Smart Picks
         </div>
-        <p class="text-muted small mb-2">Based on popular choices, you might like:</p>
-        <div class="d-flex align-items-center mb-2">
-            <img src="{{ $suggestion->getImage() }}" class="rounded-circle me-2"
-                 style="width:42px;height:42px;object-fit:cover;" alt="{{ $suggestion->title }}">
-            <div>
-                <p class="mb-0 fw-semibold small">{{ $suggestion->title }}</p>
-                <small class="text-muted">{{ ucfirst($suggestion->category) }}</small>
-            </div>
-        </div>
-        <div class="d-flex justify-content-between align-items-center">
-            <span class="text-primary fw-bold">${{ $suggestion->getPrice() }}</span>
-            <a href="{{ $suggestion->getLink() }}" class="btn btn-sm border border-secondary rounded-pill text-primary px-3">
-                View <i class="fas fa-arrow-right ms-1"></i>
-            </a>
+        <div id="advisor-content" style="padding: 10px; max-height: 300px; overflow-y: auto;">
+            <div class="text-center py-2"><span class="spinner-border spinner-border-sm text-warning"></span> Loading...</div>
         </div>
     </div>
+
+    <button id="advisor-trigger" style="width: 60px; height: 60px; border-radius: 50%; background: #ffb524; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); color: white; font-size: 24px; cursor: pointer; float: right; transition: transform 0.2s;">
+        💡
+    </button>
 </div>
 
 <script>
-function toggleAdvisor() {
-    var panel = document.getElementById('advisor-panel');
-    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-}
+document.addEventListener('DOMContentLoaded', function() {
+    const trigger = document.getElementById('advisor-trigger');
+    const bubble = document.getElementById('advisor-bubble');
+    const content = document.getElementById('advisor-content');
+    let isLoaded = false;
+
+    trigger.addEventListener('click', function() {
+        // Toggle visibility
+        if (bubble.style.display === 'none') {
+            bubble.style.display = 'block';
+            setTimeout(() => bubble.style.transform = 'translateY(0)', 10); // smooth slide up
+            
+            // Fetch via AJAX once per page load. Avoided the exclamation mark here!
+            if (isLoaded === false) {
+                fetch('/api/smart-suggestions')
+                    .then(response => response.json())
+                    .then(data => {
+                        content.innerHTML = '';
+                        data.forEach(item => {
+                            content.innerHTML += `
+                                <a href="${item.url}" style="display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; text-decoration: none; color: #333;">
+                                    <img src="${item.image}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover; margin-right: 10px;">
+                                    <div>
+                                        <div style="font-size: 13px; font-weight: bold; line-height: 1.2;">${item.name}</div>
+                                        <div style="font-size: 12px; color: #81c408;">$${item.price} TTD</div>
+                                    </div>
+                                </a>
+                            `;
+                        });
+                        isLoaded = true;
+                    })
+                    .catch(error => {
+                        content.innerHTML = '<div style="font-size:12px; color:red; text-align:center;">Failed to load suggestions.</div>';
+                    });
+            }
+        } else {
+            bubble.style.transform = 'translateY(20px)';
+            setTimeout(() => bubble.style.display = 'none', 300);
+        }
+    });
+});
 </script>
-@endif

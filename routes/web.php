@@ -61,3 +61,4 @@ Route::prefix('user')->middleware(['auth'])->name('user.')->group(function () {
     Route::get('/profile', [UserController::class, 'profile'])->name('profile');
     Route::get('/orders', [UserController::class, 'orders'])->name('orders.index');
 });
+Route::get('/api/smart-suggestions', [\App\Http\Controllers\ProductController::class, 'smartSuggestions'])->name('api.suggestions');

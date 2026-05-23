@@ -37,4 +37,29 @@ class ProductController extends Controller
 
         return view('pages.default.productspage', compact('product_data', 'categories', 'active_category'));
     }
+    public function smartSuggestions()
+    {
+        // Try to get the top 3 best-selling products by joining the order_products table
+        $topProducts = \App\Models\Product::withCount('orders')
+            ->orderBy('orders_count', 'desc')
+            ->take(3)
+            ->get();
+
+        // If the store is brand new and has no orders yet, fallback to the newest products
+        if ($topProducts->sum('orders_count') == 0) {
+            $topProducts = \App\Models\Product::latest()->take(3)->get();
+        }
+
+        // Return just the data we need for the bubble
+        $suggestions = $topProducts->map(function ($product) {
+            return [
+                'name' => $product->name,
+                'price' => number_format($product->price, 2),
+                'url' => route('product.detail', $product->slug ?? $product->id),
+                'image' => secure_asset('storage/' . $product->image),
+            ];
+        });
+
+        return response()->json($suggestions);
+    }
 }
